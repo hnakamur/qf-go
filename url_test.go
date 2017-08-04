@@ -1,7 +1,7 @@
 package qf
 
 import (
-	"log"
+	"fmt"
 	"path"
 	"testing"
 	"time"
@@ -9,8 +9,16 @@ import (
 	"github.com/hnakamur/randutil"
 )
 
-func Test1000URLs(t *testing.T) {
-	count := uint(1000)
+func TestURLs(t *testing.T) {
+	counts := []uint{1e3, 1e4, 1e5, 1e6}
+	for _, count := range counts {
+		t.Run(fmt.Sprintf("count%d", count), func(t *testing.T) {
+			testManyURLs(t, count)
+		})
+	}
+}
+
+func testManyURLs(t *testing.T, count uint) {
 	seed := uint64(time.Now().UnixNano())
 	maxWords := uint(8)
 	g, err := newURLPathGenerator(seed, maxWords)
@@ -18,9 +26,9 @@ func Test1000URLs(t *testing.T) {
 		t.Fatal(err)
 	}
 	paths, err := g.RandomPaths(count)
-	for i := uint(0); i < count; i++ {
-		log.Printf("i=%d, path=%s", i, paths[i])
-	}
+	// for i := uint(0); i < count; i++ {
+	// 	log.Printf("i=%d, path=%s", i, paths[i])
+	// }
 	f := NewProbability(int(count), 1e-3)
 	f.AddAll(paths)
 
