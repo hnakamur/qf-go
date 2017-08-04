@@ -1,7 +1,9 @@
 package qf
 
 import (
+	"bufio"
 	"log"
+	"os"
 	"runtime"
 	"testing"
 )
@@ -66,6 +68,50 @@ func Test1000Words(t *testing.T) {
 		{"probability", false},
 		{"shutdown", false},
 		{"unknown", false},
+	}
+	for _, c := range testCases {
+		got := f.Contains(c.word)
+		if got != c.want {
+			t.Errorf("word=%s, got=%v, want=%v", c.word, got, c.want)
+		}
+	}
+}
+
+func TestWith466KWords(t *testing.T) {
+	file, err := os.Open("words.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	var words []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		words = append(words, scanner.Text())
+	}
+	err = scanner.Err()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := NewProbability(466544, 1e-3)
+	log.Printf("len(data)=%d", len(f.data))
+	for _, word := range words {
+		f.Add(word)
+	}
+	for _, word := range words {
+		got := f.Contains(word)
+		want := true
+		if got != want {
+			t.Errorf("word=%s, got=%v, want=%v", word, got, want)
+		}
+	}
+	testCases := []struct {
+		word string
+		want bool
+	}{
+		{"createable", false},
+		{"propability", false},
 	}
 	for _, c := range testCases {
 		got := f.Contains(c.word)
