@@ -2,15 +2,18 @@ package qf
 
 import (
 	"fmt"
+	"log"
 	"path"
+	"runtime"
 	"testing"
 	"time"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/hnakamur/randutil"
 )
 
 func TestURLs(t *testing.T) {
-	counts := []uint{1e3, 1e4, 1e5, 1e6}
+	counts := []uint{1e3, 1e4, 1e5, 1e6, 1e7}
 	for _, count := range counts {
 		t.Run(fmt.Sprintf("count%d", count), func(t *testing.T) {
 			testManyURLs(t, count)
@@ -20,17 +23,41 @@ func TestURLs(t *testing.T) {
 
 func testManyURLs(t *testing.T, count uint) {
 	seed := uint64(time.Now().UnixNano())
+	t1 := time.Now()
 	maxWords := uint(8)
 	g, err := newURLPathGenerator(seed, maxWords)
 	if err != nil {
 		t.Fatal(err)
 	}
 	paths, err := g.RandomPaths(count)
-	// for i := uint(0); i < count; i++ {
+	if err != nil {
+		t.Fatal(err)
+	}
+	log.Printf("elapsed for generating paths=%v", time.Since(t1))
+
+	var ms1 runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&ms1)
+	log.Printf("alloc#1=%s", humanize.Bytes(ms1.Alloc))
+	testQuotientFilterWithURLs(t, paths)
+	var ms2 runtime.MemStats
+	runtime.ReadMemStats(&ms2)
+	log.Printf("alloc#2=%s, delta=%s", humanize.Bytes(ms2.Alloc), humanize.Bytes(ms2.Alloc-ms1.Alloc))
+
+}
+
+func testQuotientFilterWithURLs(t *testing.T, paths []string) {
+	t1 := time.Now()
+
+	count := len(paths)
+	// for i := 0; i < count; i++ {
 	// 	log.Printf("i=%d, path=%s", i, paths[i])
 	// }
-	f := NewProbability(int(count), 1e-3)
+	f := NewProbability(count, 1e-3)
 	f.AddAll(paths)
+
+	t2 := time.Now()
+	log.Printf("elapsed for building quotient filter=%v", t2.Sub(t1))
 
 	for _, p := range paths {
 		got := f.Contains(p)
@@ -51,6 +78,9 @@ func testManyURLs(t *testing.T, count uint) {
 			t.Errorf("word=%s, got=%v, want=%v", c.path, got, c.want)
 		}
 	}
+
+	t3 := time.Now()
+	log.Printf("elapsed for testing quotient filter=%v", t3.Sub(t2))
 }
 
 type URLPathGenerator struct {
