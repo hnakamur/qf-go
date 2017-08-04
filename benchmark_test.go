@@ -1,21 +1,10 @@
 package qf
 
 import (
-	"log"
-	"runtime"
 	"testing"
-	"unsafe"
 )
 
-func Test850words(t *testing.T) {
-	var ms runtime.MemStats
-	runtime.ReadMemStats(&ms)
-	log.Printf("memStats=%+v", ms)
-
-	f := NewProbability(1024, 1e-3)
-	log.Printf("QuotientFilter size=%d", unsafe.Sizeof(*f))
-	log.Printf("dataLen=%d", len(f.data))
-	// This word list is copied from https://en.wiktionary.org/wiki/Appendix:Basic_English_word_list
+func BenchmarkAddAll(b *testing.B) {
 	words := []string{
 		"come",
 		"get",
@@ -868,34 +857,9 @@ func Test850words(t *testing.T) {
 		"white",
 		"wrong",
 	}
-	f.AddAll(words)
 
-	// runtime.ReadMemStats(&ms)
-	// log.Printf("memStats=%+v", ms)
-	//f.info()
-
-	for _, word := range words {
-		got := f.Contains(word)
-		want := true
-		if got != want {
-			t.Errorf("word=%s, got=%v, want=%v", word, got, want)
-		}
-	}
-	testCases := []struct {
-		word string
-		want bool
-	}{
-		{"attacked", false},
-		{"defense", false},
-		{"did", false},
-		{"done", false},
-		{"probability", false},
-		{"shutdown", false},
-	}
-	for _, c := range testCases {
-		got := f.Contains(c.word)
-		if got != c.want {
-			t.Errorf("word=%s, got=%v, want=%v", c.word, got, c.want)
-		}
+	for i := 0; i < b.N; i++ {
+		f := NewProbability(1024, 1e-3)
+		f.AddAll(words)
 	}
 }
